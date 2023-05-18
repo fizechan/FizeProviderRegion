@@ -1,13 +1,23 @@
 <?php
 
 
-namespace fize\provider\region;
+namespace Fize\Provider\Region;
 
 /**
  * 接口：省市区
  */
 abstract class RegionHandler
 {
+
+    /**
+     * 接口：本地数据
+     */
+    const LOCAL = 'Local';
+
+    /**
+     * 接口：中华人民共和国民政部
+     */
+    const MCA = 'MCA';
 
     /**
      * @var array 配置
@@ -29,25 +39,25 @@ abstract class RegionHandler
      * @param int $id 编码
      * @return RegionItem[]
      */
-    abstract public function get($id);
+    abstract public function get(int $id): array;
 
     /**
      * 获取省列表
      * @return RegionItem[]
      */
-    abstract public function getProvince();
+    abstract public function getProvinces(): array;
 
     /**
      * 根据省编码返回市列表
      * @param int $provinceId 省编码
      * @return RegionItem[]
      */
-    abstract public function getCity($provinceId);
+    abstract public function getCitys(int $provinceId): array;
 
     /**
      * 根据市编码返回区列表
      * @param int $cityId 市编码
      * @return RegionItem[]
      */
-    abstract public function getArea($cityId);
+    abstract public function getAreas(int $cityId): array;
 }
