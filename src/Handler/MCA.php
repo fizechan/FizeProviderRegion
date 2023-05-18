@@ -133,7 +133,7 @@ class MCA extends RegionHandler
      * 更新数据
      * @param int $adjust 调整格式：0-不调整；1-直辖市；2-直辖市+港澳台；
      */
-    public function update(int $adjust = 0)
+    public function update(int $adjust = 2)
     {
         libxml_use_internal_errors(true);
         $doc = new DomDocument();
@@ -212,11 +212,12 @@ class MCA extends RegionHandler
                     if (in_array($id, ['110000', '	120000', '310000', '500000'])) {
                         // 市
                         $cur_sort2 += 1;
-                        $id2 = substr($name, 0, 2) . '0100';
+                        $id2 = substr($id, 0, 2) . '0100';
+                        $name2 = '市辖区';
                         $row = [
                             'id'    => $id2,
                             'pid'   => $cur_pid1,
-                            'name'  => $name,
+                            'name'  => $name2,
                             'level' => 2,
                             'sort'  => $cur_sort2
                         ];
@@ -228,11 +229,12 @@ class MCA extends RegionHandler
                     if (in_array($id, ['710000', '	810000', '820000'])) {
                         // 市
                         $cur_sort2 += 1;
-                        $id2 = substr($name, 0, 2) . '0100';
+                        $id2 = substr($id, 0, 2) . '0100';
+                        $name2 = '市辖区';
                         $row = [
                             'id'    => $id2,
                             'pid'   => $cur_pid1,
-                            'name'  => $name,
+                            'name'  => $name2,
                             'level' => 2,
                             'sort'  => $cur_sort2
                         ];
@@ -240,11 +242,12 @@ class MCA extends RegionHandler
                         $cur_pid2 = $id2;
                         // 区
                         $cur_sort3 += 1;
-                        $id3 = substr($name, 0, 2) . '0101';
+                        $id3 = substr($id, 0, 2) . '0101';
+                        $name3 = '市辖区';
                         $row = [
                             'id'    => $id3,
                             'pid'   => $cur_pid2,
-                            'name'  => $name,
+                            'name'  => $name3,
                             'level' => 3,
                             'sort'  => $cur_sort3
                         ];
