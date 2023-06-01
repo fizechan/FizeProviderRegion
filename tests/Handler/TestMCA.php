@@ -27,7 +27,7 @@ class TestMCA extends TestCase
     public function testGetCitys()
     {
         $mca = new MCA();
-        $items = $mca->getCitys(110000);
+        $items = $mca->getCitys(500000);
         var_dump($items);
         self::assertIsArray($items);
     }
@@ -35,15 +35,14 @@ class TestMCA extends TestCase
     public function testGetAreas()
     {
         $mca = new MCA();
-        $items = $mca->getAreas(110100);
+        $items = $mca->getAreas(500200);
         var_dump($items);
         self::assertIsArray($items);
     }
 
     public function testUpdate()
     {
-        $mca = new MCA();
-        $mca->update();
+        MCA::update();
         self::assertTrue(true);
     }
 }

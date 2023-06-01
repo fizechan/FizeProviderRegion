@@ -27,7 +27,7 @@ class MCA extends RegionHandler
     public function __construct(array $config = null)
     {
         parent::__construct($config);
-        $this->db = new SQLite3(dirname(dirname(__DIR__)) . "/data/MCA.sqlite3", SQLITE3_OPEN_READWRITE);
+        $this->db = new SQLite3(dirname(dirname(__DIR__)) . "/data/MCA.sqlite3", SQLITE3_OPEN_READONLY);
     }
 
     /**
@@ -133,7 +133,7 @@ class MCA extends RegionHandler
      * 更新数据
      * @param int $adjust 调整格式：0-不调整；1-直辖市；2-直辖市+港澳台；
      */
-    public function update(int $adjust = 2)
+    public static function update(int $adjust = 2)
     {
         libxml_use_internal_errors(true);
         $doc = new DomDocument();
@@ -274,12 +274,13 @@ class MCA extends RegionHandler
                 }
             }
         }
-        $this->db->exec('BEGIN TRANSACTION');
-        $this->db->exec('DELETE FROM region');
+        $db = new SQLite3(dirname(dirname(__DIR__)) . "/data/MCA.sqlite3", SQLITE3_OPEN_READWRITE);
+        $db->exec('BEGIN TRANSACTION');
+        $db->exec('DELETE FROM region');
         foreach ($rows as $row) {
             $sql = "INSERT INTO region (id, pid, name, level, sort) VALUES ({$row['id']}, {$row['pid']}, '{$row['name']}', '{$row['level']}', {$row['sort']})";
-            $this->db->exec($sql);
+            $db->exec($sql);
         }
-        $this->db->exec('COMMIT');
+        $db->exec('COMMIT');
     }
 }
