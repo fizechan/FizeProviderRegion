@@ -210,7 +210,7 @@ class MCA extends RegionHandler
                 $cur_pid2 = $id;  // 直辖市兼容
                 if ($adjust >= 1) {  // 直辖市调整
                     if (in_array($id, ['110000', '	120000', '310000', '500000'])) {
-                        // 市
+                        // 市辖区
                         $cur_sort2 += 1;
                         $id2 = substr($id, 0, 2) . '0100';
                         $name2 = '市辖区';
@@ -223,6 +223,7 @@ class MCA extends RegionHandler
                         ];
                         $rows[] = $row;
                         $cur_pid2 = $id2;
+                        // @todo 县
                     }
                 }
                 if ($adjust >= 2) {  // 港澳台调整
