@@ -174,6 +174,10 @@ class MCA extends RegionHandler
             }
             if ($tr_type == 3) {  // 区
                 $cur_sort3 += 1;
+                // 直辖市-县
+                if (in_array($cur_pid1, ['500000'])) {
+                    $cur_pid2 = substr($id, 0, 4) . '00';
+                }
                 $row = [
                     'id'    => $id,
                     'pid'   => $cur_pid2,
@@ -223,7 +227,20 @@ class MCA extends RegionHandler
                         ];
                         $rows[] = $row;
                         $cur_pid2 = $id2;
-                        // @todo 县
+                    }
+                    // 县
+                    if (in_array($id, ['500000'])) {
+                        $cur_sort2 += 1;
+                        $id2 = substr($id, 0, 2) . '0200';
+                        $name2 = '县';
+                        $row = [
+                            'id'    => $id2,
+                            'pid'   => $cur_pid1,
+                            'name'  => $name2,
+                            'level' => 2,
+                            'sort'  => $cur_sort2
+                        ];
+                        $rows[] = $row;
                     }
                 }
                 if ($adjust >= 2) {  // 港澳台调整
