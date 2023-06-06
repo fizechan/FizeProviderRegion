@@ -305,5 +305,6 @@ class MCA extends RegionHandler
             $db->exec($sql);
         }
         $db->exec('COMMIT');
+        $db->exec('VACUUM');
     }
 }
