@@ -25,7 +25,7 @@ class Local extends RegionHandler
     public function __construct(array $config = null)
     {
         parent::__construct($config);
-        $this->db = new SQLite3(dirname(__DIR__, 2) . "/data/Local.sqlite3", SQLITE3_OPEN_READWRITE);
+        $this->db = new SQLite3(dirname(__DIR__, 2) . "/data/Local.sqlite3", SQLITE3_OPEN_READONLY);
     }
 
     /**
@@ -86,6 +86,29 @@ class Local extends RegionHandler
     public function getAreas(int $cityId): array
     {
         return $this->getList($cityId);
+    }
+
+    /**
+     * 获取完整名称
+     * @param int    $id        编码
+     * @param string $separator 间隔符
+     * @param int    $adjust    调整方式：0-不调整；1-去除【市辖区、县】；
+     * @return string
+     */
+    public function getFullName(int $id, string $separator = '', int $adjust = 0): string
+    {
+        $area = $this->db->querySingle("SELECT * FROM region WHERE id = {$id}", true);
+        if (empty($area)) {
+            return '';
+        }
+        $full_name = $area['name'];
+        $city = $this->db->querySingle("SELECT * FROM region WHERE id = {$area['pid']}", true);
+        if (substr((string)$city['id'], -2) != '00' || $adjust == 0) {
+            $full_name = $city['name'] . $separator . $full_name;
+        }
+        $province = $this->db->querySingle("SELECT * FROM region WHERE id = {$city['pid']}", true);
+        $full_name = $province['name'] . $separator . $full_name;
+        return $full_name;
     }
 
     /**
