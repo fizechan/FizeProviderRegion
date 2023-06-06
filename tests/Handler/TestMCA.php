@@ -40,6 +40,18 @@ class TestMCA extends TestCase
         self::assertIsArray($items);
     }
 
+    public function testGetFullName()
+    {
+        $mca = new MCA();
+        $name = $mca->getFullName(110109, '-');
+        var_dump($name);
+        self::assertEquals('北京市-市辖区-门头沟区', $name);
+
+        $name = $mca->getFullName(110109, '', 1);
+        var_dump($name);
+        self::assertEquals('北京市门头沟区', $name);
+    }
+
     public function testUpdate()
     {
         MCA::update();

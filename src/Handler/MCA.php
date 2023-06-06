@@ -91,6 +91,29 @@ class MCA extends RegionHandler
     }
 
     /**
+     * 获取完整名称
+     * @param int    $id        编码
+     * @param string $separator 间隔符
+     * @param int    $adjust    调整方式：0-不调整；1-去除【市辖区、县】；
+     * @return string
+     */
+    public function getFullName(int $id, string $separator = '', int $adjust = 0): string
+    {
+        $area = $this->db->querySingle("SELECT * FROM region WHERE id = {$id}", true);
+        if (empty($area)) {
+            return '';
+        }
+        $full_name = $area['name'];
+        $city = $this->db->querySingle("SELECT * FROM region WHERE id = {$area['pid']}", true);
+        if (substr((string)$city['id'], -2) != '00' || $adjust == 0) {
+            $full_name = $city['name'] . $separator . $full_name;
+        }
+        $province = $this->db->querySingle("SELECT * FROM region WHERE id = {$city['pid']}", true);
+        $full_name = $province['name'] . $separator . $full_name;
+        return $full_name;
+    }
+
+    /**
      * 根据ID返回项
      * @param int $id ID
      * @return RegionItem|null 未找到返回null
@@ -138,7 +161,7 @@ class MCA extends RegionHandler
         libxml_use_internal_errors(true);
         $doc = new DomDocument();
         $doc->preserveWhiteSpace = false;
-        $url = 'https://www.mca.gov.cn/article/sj/xzqh/2022/202201xzqh.html';
+        $url = 'https://www.mca.gov.cn/mzsj/xzqh/2022/202201xzqh.html';
         $html = file_get_contents($url);
         $doc->loadHTML($html);
         $xpath = new DOMXPath($doc);
