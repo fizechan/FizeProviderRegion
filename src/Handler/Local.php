@@ -8,6 +8,7 @@ use SQLite3;
 
 /**
  * 本地数据
+ * @deprecated 数据来源未知，将废弃。
  */
 class Local extends RegionHandler
 {
@@ -83,7 +84,7 @@ class Local extends RegionHandler
      * @param int $cityId 市编码
      * @return RegionItem[]
      */
-    public function getAreas(int $cityId): array
+    public function getCountys(int $cityId): array
     {
         return $this->getList($cityId);
     }

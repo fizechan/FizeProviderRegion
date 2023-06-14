@@ -59,7 +59,7 @@ abstract class RegionHandler
      * @param int $cityId 市编码
      * @return RegionItem[]
      */
-    abstract public function getAreas(int $cityId): array;
+    abstract public function getCountys(int $cityId): array;
 
     /**
      * 获取完整名称

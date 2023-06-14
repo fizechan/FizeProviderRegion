@@ -85,7 +85,7 @@ class MCA extends RegionHandler
      * @param int $cityId 市编码
      * @return RegionItem[]
      */
-    public function getAreas(int $cityId): array
+    public function getCountys(int $cityId): array
     {
         return $this->getList($cityId);
     }
