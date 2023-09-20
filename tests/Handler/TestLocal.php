@@ -32,10 +32,10 @@ class TestLocal extends TestCase
         self::assertIsArray($items);
     }
 
-    public function testGetAreas()
+    public function testGetCountys()
     {
         $local = new Local();
-        $items = $local->getAreas(350200);
+        $items = $local->getCountys(350200);
         var_dump($items);
         self::assertIsArray($items);
     }

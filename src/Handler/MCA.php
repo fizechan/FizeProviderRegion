@@ -6,6 +6,7 @@ use DOMDocument;
 use DOMXPath;
 use Fize\Provider\Region\RegionHandler;
 use Fize\Provider\Region\RegionItem;
+use RuntimeException;
 use SQLite3;
 
 /**
@@ -67,7 +68,7 @@ class MCA extends RegionHandler
      */
     public function getProvinces(): array
     {
-        return $this->getList(0);
+        return $this->gets(0);
     }
 
     /**
@@ -77,7 +78,7 @@ class MCA extends RegionHandler
      */
     public function getCitys(int $provinceId): array
     {
-        return $this->getList($provinceId);
+        return $this->gets($provinceId);
     }
 
     /**
@@ -87,24 +88,24 @@ class MCA extends RegionHandler
      */
     public function getCountys(int $cityId): array
     {
-        return $this->getList($cityId);
+        return $this->gets($cityId);
     }
 
     /**
      * 获取完整名称
      * @param int    $id        编码
      * @param string $separator 间隔符
-     * @param int    $adjust    调整方式：0-不调整；1-去除【市辖区、县】；
+     * @param int    $adjust    调整方式：0-不调整；1-去除【市辖区、县、直辖县级】；
      * @return string
      */
     public function getFullName(int $id, string $separator = '', int $adjust = 0): string
     {
-        $area = $this->db->querySingle("SELECT * FROM region WHERE id = {$id}", true);
-        if (empty($area)) {
+        $county = $this->db->querySingle("SELECT * FROM region WHERE id = {$id}", true);
+        if (empty($county)) {
             return '';
         }
-        $full_name = $area['name'];
-        $city = $this->db->querySingle("SELECT * FROM region WHERE id = {$area['pid']}", true);
+        $full_name = $county['name'];
+        $city = $this->db->querySingle("SELECT * FROM region WHERE id = {$county['pid']}", true);
         if (substr((string)$city['id'], -2) != '00' || $adjust == 0) {
             $full_name = $city['name'] . $separator . $full_name;
         }
@@ -137,7 +138,7 @@ class MCA extends RegionHandler
      * @param int $parentid 父级ID
      * @return RegionItem[]
      */
-    private function getList(int $parentid): array
+    private function gets(int $parentid): array
     {
         $result = $this->db->query("SELECT * FROM region WHERE pid = {$parentid} ORDER BY sort ASC");
         $items = [];
@@ -167,61 +168,40 @@ class MCA extends RegionHandler
         $xpath = new DOMXPath($doc);
         $trs = $xpath->query('//tr');
         $rows = [];
-        $cur_pid1 = 0;  // 省
-        $cur_pid2 = 0;  // 市
+        $cur_pid1 = 0;   // 省
+        $cur_pid2 = 0;   // 市
         $cur_sort1 = 0;  // 省
         $cur_sort2 = 0;  // 市
         $cur_sort3 = 0;  // 区
+        $name_id_map = [
+            '西沙区' => '460321',
+            '南沙区' => '460322',
+        ];  // 修正数据
         foreach ($trs as $tr) {
             $tds = $xpath->query('./td', $tr);
             if ($tds->length != 9) {
                 continue;
             }
             $id = trim($tds->item(1)->nodeValue);
-            if (!is_numeric($id)) {
+            if ($id == '行政区划代码') {  // 表头
                 continue;
             }
             $name = $tds->item(2)->nodeValue;
             $name = htmlentities($name);
             $name = str_replace('&nbsp;', ' ', $name);
             $name = trim($name);
-            $spans = $xpath->query("./span", $tds->item(2));
-            $tr_type = 1;  // 省
-            if ($spans->length > 0) {
-                $text = htmlentities(trim($spans->item(0)->nodeValue));
-                if ($text == '&nbsp;') {
-                    $tr_type = 2;
-                } elseif ($text == '&nbsp;&nbsp;') {
-                    $tr_type = 3;
-                }
+            if (empty($name)) {
+                continue;
             }
-            if ($tr_type == 3) {  // 区
-                $cur_sort3 += 1;
-                // 直辖市-县
-                if (in_array($cur_pid1, ['500000'])) {
-                    $cur_pid2 = substr($id, 0, 4) . '00';
-                }
-                $row = [
-                    'id'    => $id,
-                    'pid'   => $cur_pid2,
-                    'name'  => $name,
-                    'level' => 3,
-                    'sort'  => $cur_sort3
-                ];
-                $rows[] = $row;
-            } elseif ($tr_type == 2) {  // 市
-                $cur_sort2 += 1;
-                $cur_sort3 = 0;
-                $row = [
-                    'id'    => $id,
-                    'pid'   => $cur_pid1,
-                    'name'  => $name,
-                    'level' => 2,
-                    'sort'  => $cur_sort2
-                ];
-                $rows[] = $row;
-                $cur_pid2 = $id;
-            } else {  // 省
+            // 识别省市区
+            if (substr($id, -4) == '0000') {
+                $tr_type = 1;  // 省、直辖市
+            } elseif (substr($id, -2) == '00') {
+                $tr_type = 2;  // 市
+            } else {
+                $tr_type = 3;  // 区
+            }
+            if ($tr_type == 1) {  // 省、直辖市、自治区、港澳台
                 $cur_sort1 += 1;
                 $cur_sort2 = 0;
                 $cur_sort3 = 0;
@@ -235,37 +215,6 @@ class MCA extends RegionHandler
                 $rows[] = $row;
                 $cur_pid1 = $id;
                 $cur_pid2 = $id;  // 直辖市兼容
-                if ($adjust >= 1) {  // 直辖市调整
-                    if (in_array($id, ['110000', '	120000', '310000', '500000'])) {
-                        // 市辖区
-                        $cur_sort2 += 1;
-                        $id2 = substr($id, 0, 2) . '0100';
-                        $name2 = '市辖区';
-                        $row = [
-                            'id'    => $id2,
-                            'pid'   => $cur_pid1,
-                            'name'  => $name2,
-                            'level' => 2,
-                            'sort'  => $cur_sort2
-                        ];
-                        $rows[] = $row;
-                        $cur_pid2 = $id2;
-                    }
-                    // 县
-                    if (in_array($id, ['500000'])) {
-                        $cur_sort2 += 1;
-                        $id2 = substr($id, 0, 2) . '0200';
-                        $name2 = '县';
-                        $row = [
-                            'id'    => $id2,
-                            'pid'   => $cur_pid1,
-                            'name'  => $name2,
-                            'level' => 2,
-                            'sort'  => $cur_sort2
-                        ];
-                        $rows[] = $row;
-                    }
-                }
                 if ($adjust >= 2) {  // 港澳台调整
                     if (in_array($id, ['710000', '	810000', '820000'])) {
                         // 市
@@ -295,6 +244,73 @@ class MCA extends RegionHandler
                         $rows[] = $row;
                     }
                 }
+            } elseif ($tr_type == 2) {  // 市、直辖县级
+                $cur_sort2 += 1;
+                $cur_sort3 = 0;
+                $row = [
+                    'id'    => $id,
+                    'pid'   => $cur_pid1,
+                    'name'  => $name,
+                    'level' => 2,
+                    'sort'  => $cur_sort2
+                ];
+                $rows[] = $row;
+                $cur_pid2 = $id;
+                if (in_array($id, ['460400'])) {  // 儋州市
+                    $id3 = substr($id, 0, 4) . '01';
+                    $name3 = '市辖区';
+                    $row = [
+                        'id'    => $id3,
+                        'pid'   => $cur_pid2,
+                        'name'  => $name3,
+                        'level' => 3,
+                        'sort'  => 1
+                    ];
+                    $rows[] = $row;
+                }
+            } else {  // 区
+                if (!is_numeric($id)) {
+                    if (isset($name_id_map[$name])) {
+                        $id = $name_id_map[$name];
+                    } else {
+                        throw new RuntimeException("无法解析行政区划：{$name}");
+                    }
+                }
+                $cur_pid2n = substr($id, 0, 4) . '00';
+                if ($cur_pid2n != $cur_pid2) {
+                    if ($adjust >= 1) {
+                        $md = substr($id, 2, 2);
+                        if ($md == '01') {  // 市辖区
+                            $name2 = '市辖区';
+                        } elseif ($md == '02') {  // 县
+                            $name2 = '县';
+                        } elseif ($md == '90') {  // 直辖县级
+                            $name2 = '直辖县级';
+                        } else {
+                            throw new RuntimeException("无法解析行政区划代码：{$id}");
+                        }
+                        $cur_sort2 += 1;
+                        $row = [
+                            'id'    => $cur_pid2n,
+                            'pid'   => $cur_pid1,
+                            'name'  => $name2,
+                            'level' => 2,
+                            'sort'  => $cur_sort2
+                        ];
+                        $rows[] = $row;
+                        $cur_pid2 = $cur_pid2n;
+                        $cur_sort3 = 0;
+                    }
+                }
+                $cur_sort3 += 1;
+                $row = [
+                    'id'    => $id,
+                    'pid'   => $cur_pid2,
+                    'name'  => $name,
+                    'level' => 3,
+                    'sort'  => $cur_sort3
+                ];
+                $rows[] = $row;
             }
         }
         $db = new SQLite3(dirname(dirname(__DIR__)) . "/data/MCA.sqlite3", SQLITE3_OPEN_READWRITE);
@@ -305,6 +321,6 @@ class MCA extends RegionHandler
             $db->exec($sql);
         }
         $db->exec('COMMIT');
-        $db->exec('VACUUM');
+        $db->exec('VACUUM');  // 数据压缩
     }
 }

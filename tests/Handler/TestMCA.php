@@ -32,10 +32,10 @@ class TestMCA extends TestCase
         self::assertIsArray($items);
     }
 
-    public function testGetAreas()
+    public function testGetCountys()
     {
         $mca = new MCA();
-        $items = $mca->getAreas(500200);
+        $items = $mca->getCountys(500200);
         var_dump($items);
         self::assertIsArray($items);
     }
