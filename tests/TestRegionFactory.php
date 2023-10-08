@@ -11,8 +11,8 @@ class TestRegionFactory extends TestCase
     public function testCreate()
     {
         $factory = new RegionFactory();
-        $local = $factory->create(RegionHandler::LOCAL);
-        $items = $local->get(350213);
+        $mca = $factory->create(RegionHandler::MCA);
+        $items = $mca->get(350213);
         var_dump($items);
         self::assertIsArray($items);
     }

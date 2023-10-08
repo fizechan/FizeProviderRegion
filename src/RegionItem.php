@@ -17,7 +17,7 @@ final class RegionItem
     /**
      * @var int 父级行政区划代码
      */
-    public $parentId;
+    public $pid;
 
     /**
      * @var string 名称

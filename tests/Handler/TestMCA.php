@@ -50,6 +50,10 @@ class TestMCA extends TestCase
         $name = $mca->getFullName(110109, '', 1);
         var_dump($name);
         self::assertEquals('北京市门头沟区', $name);
+
+        $name = $mca->getFullName(442001, '', 1);
+        var_dump($name);
+        self::assertEquals('广东省中山市', $name);
     }
 
     public function testUpdate()

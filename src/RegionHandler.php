@@ -65,7 +65,7 @@ abstract class RegionHandler
      * 获取完整名称
      * @param int    $id 编码
      * @param string $separator 间隔符
-     * @param int    $adjust 调整方式：0-不调整；1-去除【市辖区、县】；
+     * @param int    $adjust 调整方式：0-不调整；1-去除【市辖区、县、直辖县级】；
      * @return string
      */
     abstract public function getFullName(int $id, string $separator = '', int $adjust = 0): string;

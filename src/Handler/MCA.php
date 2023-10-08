@@ -28,7 +28,7 @@ class MCA extends RegionHandler
     public function __construct(array $config = null)
     {
         parent::__construct($config);
-        $this->db = new SQLite3(dirname(dirname(__DIR__)) . "/data/MCA.sqlite3", SQLITE3_OPEN_READONLY);
+        $this->db = new SQLite3(dirname(__DIR__, 2) . "/data/MCA.sqlite3", SQLITE3_OPEN_READONLY);
     }
 
     /**
@@ -104,13 +104,19 @@ class MCA extends RegionHandler
         if (empty($county)) {
             return '';
         }
-        $full_name = $county['name'];
+        $full_name = '';
+        $bad_strs = ['市辖区', '县', '直辖县级'];
+        if (!in_array($county['name'], $bad_strs) || $adjust == 0) {
+            $full_name = $county['name'];
+        }
         $city = $this->db->querySingle("SELECT * FROM region WHERE id = {$county['pid']}", true);
-        if (substr((string)$city['id'], -2) != '00' || $adjust == 0) {
+        if (!in_array($city['name'], $bad_strs) || $adjust == 0) {
             $full_name = $city['name'] . $separator . $full_name;
         }
         $province = $this->db->querySingle("SELECT * FROM region WHERE id = {$city['pid']}", true);
-        $full_name = $province['name'] . $separator . $full_name;
+        if (!in_array($province['name'], $bad_strs) || $adjust == 0) {
+            $full_name = $province['name'] . $separator . $full_name;
+        }
         return $full_name;
     }
 
@@ -127,7 +133,7 @@ class MCA extends RegionHandler
         }
         $item = new RegionItem();
         $item->id = $row['id'];
-        $item->parentId = $row['pid'];
+        $item->pid = $row['pid'];
         $item->name = $row['name'];
         $item->level = $row['level'];
         return $item;
@@ -145,7 +151,7 @@ class MCA extends RegionHandler
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
             $item = new RegionItem();
             $item->id = $row['id'];
-            $item->parentId = $row['pid'];
+            $item->pid = $row['pid'];
             $item->name = $row['name'];
             $item->level = $row['level'];
             $items[] = $item;
@@ -245,6 +251,20 @@ class MCA extends RegionHandler
                     }
                 }
             } elseif ($tr_type == 2) {  // 市、直辖县级
+                // 类似【东莞市】【中山市】无3级数据的则加入一条【市辖区】
+                if ($cur_pid2 != $id && $cur_sort2 > 0 && $cur_sort3 == 0) {
+                    $id3 = substr($cur_pid2, 0, 4) . '01';
+                    $name3 = '市辖区';
+                    $row = [
+                        'id'    => $id3,
+                        'pid'   => $cur_pid2,
+                        'name'  => $name3,
+                        'level' => 3,
+                        'sort'  => 1
+                    ];
+                    $rows[] = $row;
+                }
+
                 $cur_sort2 += 1;
                 $cur_sort3 = 0;
                 $row = [
@@ -256,24 +276,12 @@ class MCA extends RegionHandler
                 ];
                 $rows[] = $row;
                 $cur_pid2 = $id;
-                if (in_array($id, ['460400'])) {  // 儋州市
-                    $id3 = substr($id, 0, 4) . '01';
-                    $name3 = '市辖区';
-                    $row = [
-                        'id'    => $id3,
-                        'pid'   => $cur_pid2,
-                        'name'  => $name3,
-                        'level' => 3,
-                        'sort'  => 1
-                    ];
-                    $rows[] = $row;
-                }
             } else {  // 区
-                if (!is_numeric($id)) {
+                if (!is_numeric($id)) {  // id不为数字的情况
                     if (isset($name_id_map[$name])) {
                         $id = $name_id_map[$name];
                     } else {
-                        throw new RuntimeException("无法解析行政区划：{$name}");
+                        throw new RuntimeException("无法解析行政区划代码：{$name}");
                     }
                 }
                 $cur_pid2n = substr($id, 0, 4) . '00';
@@ -286,6 +294,20 @@ class MCA extends RegionHandler
                             $name2 = '县';
                         } elseif ($md == '90') {  // 直辖县级
                             $name2 = '直辖县级';
+
+                            // 类似【儋州市】无3级数据的则加入一条【市辖区】
+                            if ($cur_sort3 == 0) {
+                                $id3 = substr($cur_pid2, 0, 4) . '01';
+                                $name3 = '市辖区';
+                                $row = [
+                                    'id'    => $id3,
+                                    'pid'   => $cur_pid2,
+                                    'name'  => $name3,
+                                    'level' => 3,
+                                    'sort'  => 1
+                                ];
+                                $rows[] = $row;
+                            }
                         } else {
                             throw new RuntimeException("无法解析行政区划代码：{$id}");
                         }
@@ -313,7 +335,7 @@ class MCA extends RegionHandler
                 $rows[] = $row;
             }
         }
-        $db = new SQLite3(dirname(dirname(__DIR__)) . "/data/MCA.sqlite3", SQLITE3_OPEN_READWRITE);
+        $db = new SQLite3(dirname(__DIR__, 2) . "/data/MCA.sqlite3", SQLITE3_OPEN_READWRITE);
         $db->exec('BEGIN TRANSACTION');
         $db->exec('DELETE FROM region');
         foreach ($rows as $row) {

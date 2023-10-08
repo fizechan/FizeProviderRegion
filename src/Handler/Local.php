@@ -125,7 +125,7 @@ class Local extends RegionHandler
         }
         $item = new RegionItem();
         $item->id = $row['id'];
-        $item->parentId = $row['parentid'];
+        $item->pid = $row['parentid'];
         $item->level = $row['level'];
         $item->name = $row['areaname'];
         $item->shortName = $row['shortname'];
@@ -146,7 +146,7 @@ class Local extends RegionHandler
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
             $item = new RegionItem();
             $item->id = $row['id'];
-            $item->parentId = $row['parentid'];
+            $item->pid = $row['parentid'];
             $item->level = $row['level'];
             $item->name = $row['areaname'];
             $item->shortName = $row['shortname'];
