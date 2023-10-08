@@ -10,11 +10,11 @@ use RuntimeException;
 use SQLite3;
 
 /**
- * 中华人民共和国民政部
+ * 国家统计局
  *
- * 本数据支持到level3，即【省-市-区】
+ * 本数据支持到level5，即【省-市-区-街道-社区】
  */
-class MCA extends RegionHandler
+class NBS extends RegionHandler
 {
 
     /**
@@ -170,7 +170,7 @@ class MCA extends RegionHandler
         libxml_use_internal_errors(true);
         $doc = new DomDocument();
         $doc->preserveWhiteSpace = false;
-        $url = 'https://www.mca.gov.cn/mzsj/xzqh/2022/202201xzqh.html';
+        $url = 'http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/index.html';
         $html = file_get_contents($url);
         $doc->loadHTML($html);
         $xpath = new DOMXPath($doc);
