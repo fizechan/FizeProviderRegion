@@ -30,7 +30,7 @@ class NBS extends RegionHandler
     public function __construct(array $config = null)
     {
         parent::__construct($config);
-        $this->db = new SQLite3(dirname(__DIR__, 2) . "/data/MCA.sqlite3", SQLITE3_OPEN_READONLY);
+        $this->db = new SQLite3(dirname(__DIR__, 2) . "/data/NBS.sqlite3", SQLITE3_OPEN_READONLY);
     }
 
     /**
@@ -163,188 +163,237 @@ class NBS extends RegionHandler
 
     /**
      * 更新数据
-     * @param int $adjust 调整格式：0-不调整；1-直辖市；2-直辖市+港澳台；
      */
-    public static function update(int $adjust = 2)
+    public static function update()
     {
         libxml_use_internal_errors(true);
-        $doc = new DomDocument();
-        $doc->preserveWhiteSpace = false;
-        $url = 'http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/index.html';
-        $html = file_get_contents($url);
-        $doc->loadHTML($html);
-        $xpath = new DOMXPath($doc);
-        $trs = $xpath->query('//tr');
-        $rows = [];
-        $cur_pid1 = 0;   // 省
-        $cur_pid2 = 0;   // 市
-        $cur_sort1 = 0;  // 省
-        $cur_sort2 = 0;  // 市
-        $cur_sort3 = 0;  // 区
-        $name_id_map = [
-            '西沙区' => '460321',
-            '南沙区' => '460322',
-        ];  // 修正数据
-        foreach ($trs as $tr) {
-            $tds = $xpath->query('./td', $tr);
-            if ($tds->length != 9) {
-                continue;
-            }
-            $id = trim($tds->item(1)->nodeValue);
-            if ($id == '行政区划代码') {  // 表头
-                continue;
-            }
-            $name = $tds->item(2)->nodeValue;
-            $name = htmlentities($name);
-            $name = str_replace('&nbsp;', ' ', $name);
-            $name = trim($name);
-            if (empty($name)) {
-                continue;
-            }
-            // 识别省市区
-            if (substr($id, -4) == '0000') {
-                $tr_type = 1;  // 省、直辖市
-            } elseif (substr($id, -2) == '00') {
-                $tr_type = 2;  // 市
-            } else {
-                $tr_type = 3;  // 区
-            }
-            if ($tr_type == 1) {  // 省、直辖市、自治区、港澳台
-                $cur_sort1 += 1;
-                $cur_sort2 = 0;
-                $cur_sort3 = 0;
-                $row = [
-                    'id'    => $id,
-                    'pid'   => 0,
-                    'name'  => $name,
-                    'level' => 1,
-                    'sort'  => $cur_sort1
-                ];
-                $rows[] = $row;
-                $cur_pid1 = $id;
-                $cur_pid2 = $id;  // 直辖市兼容
-                if ($adjust >= 2) {  // 港澳台调整
-                    if (in_array($id, ['710000', '	810000', '820000'])) {
-                        // 市
-                        $cur_sort2 += 1;
-                        $id2 = substr($id, 0, 2) . '0100';
-                        $name2 = '市辖区';
-                        $row = [
-                            'id'    => $id2,
-                            'pid'   => $cur_pid1,
-                            'name'  => $name2,
-                            'level' => 2,
-                            'sort'  => $cur_sort2
-                        ];
-                        $rows[] = $row;
-                        $cur_pid2 = $id2;
-                        // 区
-                        $cur_sort3 += 1;
-                        $id3 = substr($id, 0, 2) . '0101';
-                        $name3 = '市辖区';
-                        $row = [
-                            'id'    => $id3,
-                            'pid'   => $cur_pid2,
-                            'name'  => $name3,
-                            'level' => 3,
-                            'sort'  => $cur_sort3
-                        ];
-                        $rows[] = $row;
-                    }
-                }
-            } elseif ($tr_type == 2) {  // 市、直辖县级
-                // 类似【东莞市】【中山市】无3级数据的则加入一条【市辖区】
-                if ($cur_pid2 != $id && $cur_sort2 > 0 && $cur_sort3 == 0) {
-                    $id3 = substr($cur_pid2, 0, 4) . '01';
-                    $name3 = '市辖区';
-                    $row = [
-                        'id'    => $id3,
-                        'pid'   => $cur_pid2,
-                        'name'  => $name3,
-                        'level' => 3,
-                        'sort'  => 1
-                    ];
-                    $rows[] = $row;
-                }
-
-                $cur_sort2 += 1;
-                $cur_sort3 = 0;
-                $row = [
-                    'id'    => $id,
-                    'pid'   => $cur_pid1,
-                    'name'  => $name,
+        $regions = [];
+        $villages = [];
+        $data1s = self::down1();
+        foreach ($data1s as $index1 => $data1) {
+            $regions[] = [
+                'id'    => $data1['id'],
+                'pid'   => 0,
+                'name'  => $data1['name'],
+                'level' => 1,
+                'sort'  => $index1 + 1
+            ];
+            echo "当前处理：{$data1['name']}\r\n";
+            ob_flush();
+            flush();
+            $data2s = self::down2($data1['id']);
+            foreach ($data2s as $index2 => $data2) {
+                echo "当前进度：{$data1['id']}/{$data2['id']}\r\n";
+                ob_flush();
+                flush();
+                $regions[] = [
+                    'id'    => $data2['id'],
+                    'pid'   => $data1['id'],
+                    'name'  => $data2['name'],
                     'level' => 2,
-                    'sort'  => $cur_sort2
+                    'sort'  => $index2 + 1
                 ];
-                $rows[] = $row;
-                $cur_pid2 = $id;
-            } else {  // 区
-                if (!is_numeric($id)) {  // id不为数字的情况
-                    if (isset($name_id_map[$name])) {
-                        $id = $name_id_map[$name];
-                    } else {
-                        throw new RuntimeException("无法解析行政区划代码：{$name}");
-                    }
-                }
-                $cur_pid2n = substr($id, 0, 4) . '00';
-                if ($cur_pid2n != $cur_pid2) {
-                    if ($adjust >= 1) {
-                        $md = substr($id, 2, 2);
-                        if ($md == '01') {  // 市辖区
-                            $name2 = '市辖区';
-                        } elseif ($md == '02') {  // 县
-                            $name2 = '县';
-                        } elseif ($md == '90') {  // 直辖县级
-                            $name2 = '直辖县级';
-
-                            // 类似【儋州市】无3级数据的则加入一条【市辖区】
-                            if ($cur_sort3 == 0) {
-                                $id3 = substr($cur_pid2, 0, 4) . '01';
-                                $name3 = '市辖区';
-                                $row = [
-                                    'id'    => $id3,
-                                    'pid'   => $cur_pid2,
-                                    'name'  => $name3,
-                                    'level' => 3,
-                                    'sort'  => 1
-                                ];
-                                $rows[] = $row;
-                            }
-                        } else {
-                            throw new RuntimeException("无法解析行政区划代码：{$id}");
-                        }
-                        $cur_sort2 += 1;
-                        $row = [
-                            'id'    => $cur_pid2n,
-                            'pid'   => $cur_pid1,
-                            'name'  => $name2,
-                            'level' => 2,
-                            'sort'  => $cur_sort2
+                if ($data2['has3']) {
+                    $data3s = self::down3($data1['id'], $data2['id']);
+                    foreach ($data3s as $index3 => $data3) {
+                        echo "当前进度：{$data1['id']}/{$data2['id']}/{$data3['id']}\r\n";
+                        ob_flush();
+                        flush();
+                        $regions[] = [
+                            'id'    => $data3['id'],
+                            'pid'   => $data2['id'],
+                            'name'  => $data3['name'],
+                            'level' => 3,
+                            'sort'  => $index3 + 1
                         ];
-                        $rows[] = $row;
-                        $cur_pid2 = $cur_pid2n;
-                        $cur_sort3 = 0;
+                        if ($data3['has4']) {
+                            $data4s = self::down4($data3['uri4']);
+                            foreach ($data4s as $index4 => $data4) {
+                                echo "当前进度：{$data1['id']}/{$data2['id']}/{$data3['id']}/{$data4['id']}\r\n";
+                                ob_flush();
+                                flush();
+                                $regions[] = [
+                                    'id'    => $data4['id'],
+                                    'pid'   => $data3['id'],
+                                    'name'  => $data4['name'],
+                                    'level' => 4,
+                                    'sort'  => $index4 + 1
+                                ];
+                                if ($data4['has5']) {
+                                    $data5s = self::down5($data4['uri5']);
+                                    foreach ($data5s as $index5 => $data5) {
+                                        $regions[] = [
+                                            'id'    => $data5['id'],
+                                            'pid'   => $data4['id'],
+                                            'name'  => $data5['name'],
+                                            'level' => 5,
+                                            'sort'  => $index5 + 1
+                                        ];
+                                        $villages[] = [
+                                            'id'   => $data5['id'],
+                                            'type' => $data5['type']
+                                        ];
+                                    }
+                                }
+                                usleep(30000);
+                            }
+                        }
                     }
                 }
-                $cur_sort3 += 1;
-                $row = [
-                    'id'    => $id,
-                    'pid'   => $cur_pid2,
-                    'name'  => $name,
-                    'level' => 3,
-                    'sort'  => $cur_sort3
-                ];
-                $rows[] = $row;
             }
         }
-        $db = new SQLite3(dirname(__DIR__, 2) . "/data/MCA.sqlite3", SQLITE3_OPEN_READWRITE);
+        $db = new SQLite3(dirname(__DIR__, 2) . "/data/NBS.sqlite3", SQLITE3_OPEN_READWRITE);
         $db->exec('BEGIN TRANSACTION');
         $db->exec('DELETE FROM region');
-        foreach ($rows as $row) {
-            $sql = "INSERT INTO region (id, pid, name, level, sort) VALUES ({$row['id']}, {$row['pid']}, '{$row['name']}', '{$row['level']}', {$row['sort']})";
+        foreach ($regions as $region) {
+            $sql = "INSERT INTO region (id, pid, name, level, sort) VALUES ({$region['id']}, {$region['pid']}, '{$region['name']}', '{$region['level']}', {$region['sort']})";
+            $db->exec($sql);
+        }
+        $db->exec('DELETE FROM village');
+        foreach ($villages as $village) {
+            $sql = "INSERT INTO village (id, type) VALUES ({$village['id']}, {$village['type']})";
             $db->exec($sql);
         }
         $db->exec('COMMIT');
         $db->exec('VACUUM');  // 数据压缩
+    }
+
+    private static function down1()
+    {
+        $datas = [];
+        $url = 'http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/index.html';
+        $html = file_get_contents($url);
+        $doc = new DomDocument();
+        $doc->preserveWhiteSpace = false;
+        $doc->loadHTML($html);
+        $xpath = new DOMXPath($doc);
+        $trs = $xpath->query("//tr[@class='provincetr']");
+        foreach ($trs as $tr) {
+            $tds = $xpath->query('./td', $tr);
+            foreach ($tds as $td) {
+                $a = $xpath->query('./a', $td)->item(0);
+                $datas[] = [
+                    'id'   => (int)(str_replace('.html', '', $a->attributes['href']->value)),
+                    'name' => trim($a->textContent)
+                ];
+            }
+        }
+        return $datas;
+    }
+
+    private static function down2($lv1Id)
+    {
+        $datas = [];
+        $url = "http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/{$lv1Id}.html";
+        $html = file_get_contents($url);
+        $doc = new DomDocument();
+        $doc->preserveWhiteSpace = false;
+        $doc->loadHTML($html);
+        $xpath = new DOMXPath($doc);
+        $trs = $xpath->query("//tr[@class='citytr']");
+        foreach ($trs as $tr) {
+            $tds = $xpath->query('./td', $tr);
+            $a1 = $xpath->query('./a', $tds->item(0))->item(0);
+            $a2 = $xpath->query('./a', $tds->item(1))->item(0);
+            $has3 = false;
+            if (!is_null($a1) && !is_null($a1->attributes['href'])) {
+                $has3 = true;
+            }
+            $datas[] = [
+                'id'   => (int)(substr(trim($a1->textContent), 0, 4)),
+                'name' => trim($a2->textContent),
+                'has3' => $has3
+            ];
+        }
+        return $datas;
+    }
+
+    private static function down3($lv1Id, $lv2Id)
+    {
+        $datas = [];
+        $url = "http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/{$lv1Id}/{$lv2Id}.html";
+        $html = file_get_contents($url);
+        $doc = new DomDocument();
+        $doc->preserveWhiteSpace = false;
+        $doc->loadHTML($html);
+        $xpath = new DOMXPath($doc);
+        $trs = $xpath->query("//tr[@class='countytr']");
+        foreach ($trs as $tr) {
+            $tds = $xpath->query('./td', $tr);
+            $a1 = $xpath->query('./a', $tds->item(0))->item(0);
+            $a2 = $xpath->query('./a', $tds->item(1))->item(0);
+            $has4 = false;
+            $uri4 = null;
+            if (!is_null($a1) && !is_null($a1->attributes['href'])) {
+                $has4 = true;
+                $href = $a1->attributes['href']->value;
+                $uri4 = "{$lv1Id}/{$href}";
+            }
+            $datas[] = [
+                'id'   => (int)(substr(trim($a1->textContent), 0, 6)),
+                'name' => trim($a2->textContent),
+                'has4' => $has4,
+                'uri4' => $uri4
+            ];
+        }
+        return $datas;
+    }
+
+    private static function down4($lv3Uri)
+    {
+        $datas = [];
+        $hparts = explode('/', $lv3Uri);
+        array_pop($hparts);
+        $hdir = implode('/', $hparts);
+        $url = "http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/{$lv3Uri}";
+        $html = file_get_contents($url);
+        $doc = new DomDocument();
+        $doc->preserveWhiteSpace = false;
+        $doc->loadHTML($html);
+        $xpath = new DOMXPath($doc);
+        $trs = $xpath->query("//tr[@class='towntr']");
+        foreach ($trs as $tr) {
+            $tds = $xpath->query('./td', $tr);
+            $a1 = $xpath->query('./a', $tds->item(0))->item(0);
+            $a2 = $xpath->query('./a', $tds->item(1))->item(0);
+            $has5 = false;
+            $uri5 = null;
+            if (!is_null($a1) && !is_null($a1->attributes['href'])) {
+                $has5 = true;
+                $href = $a1->attributes['href']->value;
+                $uri5 = "{$hdir}/{$href}";
+            }
+            $datas[] = [
+                'id'   => (int)(substr(trim($a1->textContent), 0, 9)),
+                'name' => trim($a2->textContent),
+                'has5' => $has5,
+                'uri5' => $uri5
+            ];
+        }
+        return $datas;
+    }
+
+    private static function down5($lv4Uri)
+    {
+        $datas = [];
+        $url = "http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/{$lv4Uri}";
+        $html = file_get_contents($url);
+        $doc = new DomDocument();
+        $doc->preserveWhiteSpace = false;
+        $doc->loadHTML($html);
+        $xpath = new DOMXPath($doc);
+        $trs = $xpath->query("//tr[@class='villagetr']");
+        foreach ($trs as $tr) {
+            $tds = $xpath->query('./td', $tr);
+            $id = (int)trim($tds->item(0)->textContent);
+            $type = (int)trim($tds->item(1)->textContent);
+            $name = trim($tds->item(2)->textContent);
+            $datas[] = [
+                'id'   => $id,
+                'name' => $name,
+                'type' => $type
+            ];
+        }
+        return $datas;
     }
 }
