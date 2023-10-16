@@ -6,7 +6,6 @@ use DOMDocument;
 use DOMXPath;
 use Fize\Provider\Region\RegionHandler;
 use Fize\Provider\Region\RegionItem;
-use RuntimeException;
 use SQLite3;
 
 /**
@@ -166,10 +165,16 @@ class NBS extends RegionHandler
      */
     public static function update()
     {
+        $db = new SQLite3(dirname(__DIR__, 2) . "/data/NBS.sqlite3", SQLITE3_OPEN_READWRITE);
+        $db->exec('BEGIN TRANSACTION');
+        $db->exec('DELETE FROM region');
+        $db->exec('DELETE FROM village');
+        $db->exec('COMMIT');
+
         libxml_use_internal_errors(true);
         $regions = [];
         $villages = [];
-        $data1s = self::down1();
+        $data1s = self::data1();
         foreach ($data1s as $index1 => $data1) {
             $regions[] = [
                 'id'    => $data1['id'],
@@ -181,7 +186,7 @@ class NBS extends RegionHandler
             echo "当前处理：{$data1['name']}\r\n";
             ob_flush();
             flush();
-            $data2s = self::down2($data1['id']);
+            $data2s = self::data2($data1['id']);
             foreach ($data2s as $index2 => $data2) {
                 echo "当前进度：{$data1['id']}/{$data2['id']}\r\n";
                 ob_flush();
@@ -194,7 +199,7 @@ class NBS extends RegionHandler
                     'sort'  => $index2 + 1
                 ];
                 if ($data2['has3']) {
-                    $data3s = self::down3($data1['id'], $data2['id']);
+                    $data3s = self::data3($data1['id'], $data2['id']);
                     foreach ($data3s as $index3 => $data3) {
                         echo "当前进度：{$data1['id']}/{$data2['id']}/{$data3['id']}\r\n";
                         ob_flush();
@@ -207,7 +212,7 @@ class NBS extends RegionHandler
                             'sort'  => $index3 + 1
                         ];
                         if ($data3['has4']) {
-                            $data4s = self::down4($data3['uri4']);
+                            $data4s = self::data4($data1['id'], $data2['id'], $data3['id'], $data3['uri4']);
                             foreach ($data4s as $index4 => $data4) {
                                 echo "当前进度：{$data1['id']}/{$data2['id']}/{$data3['id']}/{$data4['id']}\r\n";
                                 ob_flush();
@@ -220,7 +225,7 @@ class NBS extends RegionHandler
                                     'sort'  => $index4 + 1
                                 ];
                                 if ($data4['has5']) {
-                                    $data5s = self::down5($data4['uri5']);
+                                    $data5s = self::data5($data1['id'], $data2['id'], $data3['id'], $data4['id'], $data4['uri5']);
                                     foreach ($data5s as $index5 => $data5) {
                                         $regions[] = [
                                             'id'    => $data5['id'],
@@ -234,32 +239,43 @@ class NBS extends RegionHandler
                                             'type' => $data5['type']
                                         ];
                                     }
+                                    if (count($regions) >= 10000 || count($villages) >= 10000) {
+                                        self::save($regions, $villages);
+                                        $regions = [];
+                                        $villages = [];
+                                    }
                                 }
-                                usleep(30000);
                             }
                         }
                     }
                 }
             }
         }
+        self::save($regions, $villages);
+        $db->exec('VACUUM');
+    }
+
+    private static function save($regions, $villages) {
         $db = new SQLite3(dirname(__DIR__, 2) . "/data/NBS.sqlite3", SQLITE3_OPEN_READWRITE);
         $db->exec('BEGIN TRANSACTION');
-        $db->exec('DELETE FROM region');
         foreach ($regions as $region) {
             $sql = "INSERT INTO region (id, pid, name, level, sort) VALUES ({$region['id']}, {$region['pid']}, '{$region['name']}', '{$region['level']}', {$region['sort']})";
             $db->exec($sql);
         }
-        $db->exec('DELETE FROM village');
         foreach ($villages as $village) {
             $sql = "INSERT INTO village (id, type) VALUES ({$village['id']}, {$village['type']})";
             $db->exec($sql);
         }
         $db->exec('COMMIT');
-        $db->exec('VACUUM');  // 数据压缩
     }
 
-    private static function down1()
+    private static function data1()
     {
+        $cache_file = dirname(__DIR__, 2) . "/cache/2023.json";
+        if (is_file($cache_file)) {
+            $datas = json_decode(file_get_contents($cache_file), true);
+            return $datas;
+        }
         $datas = [];
         $url = 'http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/index.html';
         $html = file_get_contents($url);
@@ -278,11 +294,18 @@ class NBS extends RegionHandler
                 ];
             }
         }
+        file_put_contents($cache_file, json_encode($datas, JSON_UNESCAPED_UNICODE));
+        usleep(30000);
         return $datas;
     }
 
-    private static function down2($lv1Id)
+    private static function data2($lv1Id)
     {
+        $cache_file = dirname(__DIR__, 2) . "/cache/2023_{$lv1Id}.json";
+        if (is_file($cache_file)) {
+            $datas = json_decode(file_get_contents($cache_file), true);
+            return $datas;
+        }
         $datas = [];
         $url = "http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/{$lv1Id}.html";
         $html = file_get_contents($url);
@@ -305,11 +328,18 @@ class NBS extends RegionHandler
                 'has3' => $has3
             ];
         }
+        file_put_contents($cache_file, json_encode($datas, JSON_UNESCAPED_UNICODE));
+        usleep(30000);
         return $datas;
     }
 
-    private static function down3($lv1Id, $lv2Id)
+    private static function data3($lv1Id, $lv2Id)
     {
+        $cache_file = dirname(__DIR__, 2) . "/cache/2023_{$lv1Id}_{$lv2Id}.json";
+        if (is_file($cache_file)) {
+            $datas = json_decode(file_get_contents($cache_file), true);
+            return $datas;
+        }
         $datas = [];
         $url = "http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/{$lv1Id}/{$lv2Id}.html";
         $html = file_get_contents($url);
@@ -320,8 +350,9 @@ class NBS extends RegionHandler
         $trs = $xpath->query("//tr[@class='countytr']");
         foreach ($trs as $tr) {
             $tds = $xpath->query('./td', $tr);
-            $a1 = $xpath->query('./a', $tds->item(0))->item(0);
-            $a2 = $xpath->query('./a', $tds->item(1))->item(0);
+            $td0 = $tds->item(0);
+            $a1 = $xpath->query('./a', $td0)->item(0);
+            $td1 = $tds->item(1);
             $has4 = false;
             $uri4 = null;
             if (!is_null($a1) && !is_null($a1->attributes['href'])) {
@@ -330,17 +361,24 @@ class NBS extends RegionHandler
                 $uri4 = "{$lv1Id}/{$href}";
             }
             $datas[] = [
-                'id'   => (int)(substr(trim($a1->textContent), 0, 6)),
-                'name' => trim($a2->textContent),
+                'id'   => (int)(substr(trim($td0->textContent), 0, 6)),
+                'name' => trim($td1->textContent),
                 'has4' => $has4,
                 'uri4' => $uri4
             ];
         }
+        file_put_contents($cache_file, json_encode($datas, JSON_UNESCAPED_UNICODE));
+        usleep(30000);
         return $datas;
     }
 
-    private static function down4($lv3Uri)
+    private static function data4($lv1Id, $lv2Id, $lv3Id, $lv3Uri)
     {
+        $cache_file = dirname(__DIR__, 2) . "/cache/2023_{$lv1Id}_{$lv2Id}_{$lv3Id}.json";
+        if (is_file($cache_file)) {
+            $datas = json_decode(file_get_contents($cache_file), true);
+            return $datas;
+        }
         $datas = [];
         $hparts = explode('/', $lv3Uri);
         array_pop($hparts);
@@ -370,11 +408,18 @@ class NBS extends RegionHandler
                 'uri5' => $uri5
             ];
         }
+        file_put_contents($cache_file, json_encode($datas, JSON_UNESCAPED_UNICODE));
+        usleep(30000);
         return $datas;
     }
 
-    private static function down5($lv4Uri)
+    private static function data5($lv1Id, $lv2Id, $lv3Id, $lv4Id,$lv4Uri)
     {
+        $cache_file = dirname(__DIR__, 2) . "/cache/2023_{$lv1Id}_{$lv2Id}_{$lv3Id}_{$lv4Id}.json";
+        if (is_file($cache_file)) {
+            $datas = json_decode(file_get_contents($cache_file), true);
+            return $datas;
+        }
         $datas = [];
         $url = "http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/{$lv4Uri}";
         $html = file_get_contents($url);
@@ -394,6 +439,8 @@ class NBS extends RegionHandler
                 'type' => $type
             ];
         }
+        file_put_contents($cache_file, json_encode($datas, JSON_UNESCAPED_UNICODE));
+        usleep(30000);
         return $datas;
     }
 }

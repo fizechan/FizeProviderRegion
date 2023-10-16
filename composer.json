@@ -17,6 +17,7 @@
     "php": ">=7.0.0"
   },
   "suggest": {
+    "ext-json": "*",
     "ext-sqlite3": "*"
   },
   "require-dev": {
