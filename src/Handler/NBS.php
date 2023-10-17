@@ -4,6 +4,7 @@ namespace Fize\Provider\Region\Handler;
 
 use DOMDocument;
 use DOMXPath;
+use Exception;
 use Fize\Provider\Region\RegionHandler;
 use Fize\Provider\Region\RegionItem;
 use SQLite3;
@@ -255,7 +256,8 @@ class NBS extends RegionHandler
         $db->exec('VACUUM');
     }
 
-    private static function save($regions, $villages) {
+    private static function save($regions, $villages)
+    {
         $db = new SQLite3(dirname(__DIR__, 2) . "/data/NBS.sqlite3", SQLITE3_OPEN_READWRITE);
         $db->exec('BEGIN TRANSACTION');
         foreach ($regions as $region) {
@@ -278,7 +280,7 @@ class NBS extends RegionHandler
         }
         $datas = [];
         $url = 'http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/index.html';
-        $html = file_get_contents($url);
+        $html = self::htmlGet($url);
         $doc = new DomDocument();
         $doc->preserveWhiteSpace = false;
         $doc->loadHTML($html);
@@ -306,9 +308,15 @@ class NBS extends RegionHandler
             $datas = json_decode(file_get_contents($cache_file), true);
             return $datas;
         }
+        // 直筒子市，需要做特殊处理。
+        $ztzs_ids = [
+            4419,  // 广东省-东莞市
+            4420,  // 广东省-中山市
+            4604,  // 海南省-儋州市
+        ];
         $datas = [];
         $url = "http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/{$lv1Id}.html";
-        $html = file_get_contents($url);
+        $html = self::htmlGet($url);
         $doc = new DomDocument();
         $doc->preserveWhiteSpace = false;
         $doc->loadHTML($html);
@@ -322,10 +330,12 @@ class NBS extends RegionHandler
             if (!is_null($a1) && !is_null($a1->attributes['href'])) {
                 $has3 = true;
             }
+            $id = (int)(substr(trim($a1->textContent), 0, 4));
             $datas[] = [
-                'id'   => (int)(substr(trim($a1->textContent), 0, 4)),
+                'id'   => $id,
                 'name' => trim($a2->textContent),
-                'has3' => $has3
+                'has3' => $has3,
+                'ztzs' => in_array($id, $ztzs_ids)
             ];
         }
         file_put_contents($cache_file, json_encode($datas, JSON_UNESCAPED_UNICODE));
@@ -341,8 +351,24 @@ class NBS extends RegionHandler
             return $datas;
         }
         $datas = [];
+        // 直筒子市，需要做特殊处理。
+        $ztzs_ids = [
+            4419,  // 广东省-东莞市
+            4420,  // 广东省-中山市
+            4604,  // 海南省-儋州市
+        ];
+        if (in_array($lv2Id, $ztzs_ids)) {
+            $uri4 = "{$lv1Id}/{$lv2Id}.html";
+            $datas[] = [
+                'id'   => (int)"{$lv2Id}00",
+                'name' => '市辖区',
+                'has4' => true,
+                'uri4' => $uri4
+            ];
+            return $datas;
+        }
         $url = "http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/{$lv1Id}/{$lv2Id}.html";
-        $html = file_get_contents($url);
+        $html = self::htmlGet($url);
         $doc = new DomDocument();
         $doc->preserveWhiteSpace = false;
         $doc->loadHTML($html);
@@ -360,8 +386,9 @@ class NBS extends RegionHandler
                 $href = $a1->attributes['href']->value;
                 $uri4 = "{$lv1Id}/{$href}";
             }
+            $id = (int)(substr(trim($td0->textContent), 0, 6));
             $datas[] = [
-                'id'   => (int)(substr(trim($td0->textContent), 0, 6)),
+                'id'   => $id,
                 'name' => trim($td1->textContent),
                 'has4' => $has4,
                 'uri4' => $uri4
@@ -384,7 +411,7 @@ class NBS extends RegionHandler
         array_pop($hparts);
         $hdir = implode('/', $hparts);
         $url = "http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/{$lv3Uri}";
-        $html = file_get_contents($url);
+        $html = self::htmlGet($url);
         $doc = new DomDocument();
         $doc->preserveWhiteSpace = false;
         $doc->loadHTML($html);
@@ -413,7 +440,7 @@ class NBS extends RegionHandler
         return $datas;
     }
 
-    private static function data5($lv1Id, $lv2Id, $lv3Id, $lv4Id,$lv4Uri)
+    private static function data5($lv1Id, $lv2Id, $lv3Id, $lv4Id, $lv4Uri)
     {
         $cache_file = dirname(__DIR__, 2) . "/cache/2023_{$lv1Id}_{$lv2Id}_{$lv3Id}_{$lv4Id}.json";
         if (is_file($cache_file)) {
@@ -422,7 +449,7 @@ class NBS extends RegionHandler
         }
         $datas = [];
         $url = "http://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/{$lv4Uri}";
-        $html = file_get_contents($url);
+        $html = self::htmlGet($url);
         $doc = new DomDocument();
         $doc->preserveWhiteSpace = false;
         $doc->loadHTML($html);
@@ -442,5 +469,21 @@ class NBS extends RegionHandler
         file_put_contents($cache_file, json_encode($datas, JSON_UNESCAPED_UNICODE));
         usleep(30000);
         return $datas;
+    }
+
+    private static function htmlGet($url)
+    {
+        $cnt = 0;
+        while ($cnt < 3) {
+            $cnt++;
+            try {
+                $html = file_get_contents($url);
+                return $html;
+            } catch (Exception $exception) {
+                if ($cnt >= 3) {
+                    throw $exception;
+                }
+            }
+        }
     }
 }
