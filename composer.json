@@ -14,11 +14,11 @@
     }
   },
   "require": {
-    "php": ">=7.0.0"
+    "php": ">=7.0.0",
+    "ext-sqlite3": "*"
   },
   "suggest": {
-    "ext-json": "*",
-    "ext-sqlite3": "*"
+    "ext-json": "*"
   },
   "require-dev": {
     "ext-dom": "*",

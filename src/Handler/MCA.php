@@ -4,7 +4,7 @@ namespace Fize\Provider\Region\Handler;
 
 use DOMDocument;
 use DOMXPath;
-use Fize\Provider\Region\RegionHandler;
+use Fize\Provider\Region\RegionHandlerInterface;
 use Fize\Provider\Region\RegionItem;
 use RuntimeException;
 use SQLite3;
@@ -14,7 +14,7 @@ use SQLite3;
  *
  * 本数据支持到level3，即【省-市-区】
  */
-class MCA extends RegionHandler
+class MCA extends RegionHandlerInterface
 {
 
     /**

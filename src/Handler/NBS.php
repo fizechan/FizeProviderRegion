@@ -5,7 +5,7 @@ namespace Fize\Provider\Region\Handler;
 use DOMDocument;
 use DOMXPath;
 use Exception;
-use Fize\Provider\Region\RegionHandler;
+use Fize\Provider\Region\RegionHandlerInterface;
 use Fize\Provider\Region\RegionItem;
 use SQLite3;
 
@@ -14,7 +14,7 @@ use SQLite3;
  *
  * 本数据支持到level5，即【省-市-区-街道-社区】
  */
-class NBS extends RegionHandler
+class NBS extends RegionHandlerInterface
 {
 
     /**

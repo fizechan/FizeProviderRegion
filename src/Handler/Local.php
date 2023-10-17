@@ -2,7 +2,7 @@
 
 namespace Fize\Provider\Region\Handler;
 
-use Fize\Provider\Region\RegionHandler;
+use Fize\Provider\Region\RegionHandlerInterface;
 use Fize\Provider\Region\RegionItem;
 use SQLite3;
 
@@ -10,7 +10,7 @@ use SQLite3;
  * 本地数据
  * @deprecated 数据来源未知，将废弃。
  */
-class Local extends RegionHandler
+class Local extends RegionHandlerInterface
 {
 
     /**

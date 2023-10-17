@@ -33,14 +33,4 @@ final class RegionItem
      * @var string 简称
      */
     public $shortName;
-
-    /**
-     * @var float 经度
-     */
-    public $longitude;
-
-    /**
-     * @var float 纬度
-     */
-    public $latitude;
 }
