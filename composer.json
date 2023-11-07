@@ -1,6 +1,6 @@
 {
   "name": "fize/provider-region",
-  "description": "省市区数据库",
+  "description": "行政区划数据库",
   "license": "MIT",
   "authors": [
     {
@@ -17,12 +17,10 @@
     "php": ">=7.0.0",
     "ext-sqlite3": "*"
   },
-  "suggest": {
-    "ext-json": "*"
-  },
   "require-dev": {
     "ext-dom": "*",
+    "ext-json": "*",
     "ext-libxml": "*",
-    "phpunit/phpunit": "^8.0.0"
+    "phpunit/phpunit": "^9.0.0"
   }
 }

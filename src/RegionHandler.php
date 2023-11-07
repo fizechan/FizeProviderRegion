@@ -6,7 +6,7 @@ namespace Fize\Provider\Region;
 /**
  * 接口：行政区划
  */
-abstract class RegionHandler
+final class RegionHandler
 {
 
     /**

@@ -53,10 +53,10 @@ abstract class RegionHandlerInterface
 
     /**
      * 根据区编码返回街道列表
-     * @param int $countId 区编码
+     * @param int $countyId 区编码
      * @return RegionItem[]
      */
-    abstract public function getTowns(int $countId): array;
+    abstract public function getTowns(int $countyId): array;
 
     /**
      * 根据街道编码返回社区列表
@@ -73,11 +73,4 @@ abstract class RegionHandlerInterface
      * @return string
      */
     abstract public function getFullName(int $id, string $separator = '', int $adjust = 0): string;
-
-    /**
-     * 根据编码获取扩展信息
-     * @param int $id 编码
-     * @return array
-     */
-    abstract public function getExtend(int $id): array;
 }
