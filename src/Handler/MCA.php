@@ -119,22 +119,22 @@ class MCA extends RegionHandlerInterface
      */
     public function getFullName(int $id, string $separator = '', int $adjust = 0): string
     {
-        $row = $this->db->querySingle("SELECT * FROM region WHERE id = {$id}", true);
-        if (empty($county)) {
+        $row1 = $this->db->querySingle("SELECT * FROM region WHERE id = {$id}", true);
+        if (empty($row1)) {
             return '';
         }
         $full_name = '';
         $bad_strs = ['市辖区', '县', '直辖县级'];
-        if (!in_array($county['name'], $bad_strs) || $adjust == 0) {
-            $full_name = $county['name'];
+        if (!in_array($row1['name'], $bad_strs) || $adjust == 0) {
+            $full_name = $row1['name'];
         }
-        $city = $this->db->querySingle("SELECT * FROM region WHERE id = {$county['pid']}", true);
-        if (!in_array($city['name'], $bad_strs) || $adjust == 0) {
-            $full_name = $city['name'] . $separator . $full_name;
+        $row2 = $this->db->querySingle("SELECT * FROM region WHERE id = {$row1['pid']}", true);
+        if (!in_array($row2['name'], $bad_strs) || $adjust == 0) {
+            $full_name = $row2['name'] . $separator . $full_name;
         }
-        $province = $this->db->querySingle("SELECT * FROM region WHERE id = {$city['pid']}", true);
-        if (!in_array($province['name'], $bad_strs) || $adjust == 0) {
-            $full_name = $province['name'] . $separator . $full_name;
+        $row3 = $this->db->querySingle("SELECT * FROM region WHERE id = {$row2['pid']}", true);
+        if (!in_array($row3['name'], $bad_strs) || $adjust == 0) {
+            $full_name = $row3['name'] . $separator . $full_name;
         }
         return $full_name;
     }
