@@ -35,6 +35,11 @@ class TestNBS extends TestCase
     public function testGetFullName()
     {
         $nbs = new NBS();
+
+        $name = $nbs->getFullName(350521111219);
+        var_dump($name);
+        self::assertEquals('福建省泉州市惠安县东桥镇莲塘村委会', $name);
+
         $name = $nbs->getFullName(110109, '-');
         var_dump($name);
         self::assertEquals('北京市-市辖区-门头沟区', $name);
@@ -43,8 +48,12 @@ class TestNBS extends TestCase
         var_dump($name);
         self::assertEquals('北京市门头沟区', $name);
 
-        $name = $nbs->getFullName(442001, '', 1);
+        $name = $nbs->getFullName(442000, '', 1);
         var_dump($name);
         self::assertEquals('广东省中山市', $name);
+
+        $name = $nbs->getFullName(350581100207, '-', 2);
+        var_dump($name);
+        self::assertEquals('福建省-石狮市-灵秀镇-港塘村委会', $name);
     }
 }

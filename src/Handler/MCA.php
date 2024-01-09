@@ -112,31 +112,50 @@ class MCA extends RegionHandlerInterface
 
     /**
      * 获取完整名称
-     * @param int    $id 编码
+     * @param int    $id        编码
      * @param string $separator 间隔符
-     * @param int    $adjust 调整方式：0-不调整；1-去除【市辖区、县、直辖县级】；2-在1的基础上再去除中间市
+     * @param int    $adjust    调整方式：0-不调整；1-去除【市辖区、县、直辖县级】；2-在1的基础上再去除中间市
      * @return string
      */
     public function getFullName(int $id, string $separator = '', int $adjust = 0): string
     {
-        $row1 = $this->db->querySingle("SELECT * FROM region WHERE id = {$id}", true);
-        if (empty($row1)) {
-            return '';
+        $names = [];
+        $current_id = $id;
+        while (true) {
+            $region = $this->db->querySingle("SELECT * FROM region WHERE id = {$current_id}", true);
+            if (empty($region)) {
+                break;
+            }
+            $names[] = $region['name'];
+            if ($region['pid'] == 0) {
+                break;
+            }
+            $current_id = $region['pid'];
         }
-        $full_name = '';
-        $bad_strs = ['市辖区', '县', '直辖县级'];
-        if (!in_array($row1['name'], $bad_strs) || $adjust == 0) {
-            $full_name = $row1['name'];
+        if ($adjust >= 1) {
+            $bad_strs = ['市辖区', '县', '直辖县级'];
+            foreach ($names as $index => $name) {
+                if (in_array($name, $bad_strs)) {
+                    unset($names[$index]);
+                }
+            }
+            $names = array_values($names);
         }
-        $row2 = $this->db->querySingle("SELECT * FROM region WHERE id = {$row1['pid']}", true);
-        if (!in_array($row2['name'], $bad_strs) || $adjust == 0) {
-            $full_name = $row2['name'] . $separator . $full_name;
+        if ($adjust >= 2) {
+            $find_shi = false;
+            foreach ($names as $index => $name) {
+                if (substr($name, -3) == '市') {
+                    if (!$find_shi) {
+                        $find_shi = true;
+                    } else {
+                        unset($names[$index]);
+                    }
+                }
+            }
+            $names = array_values($names);
         }
-        $row3 = $this->db->querySingle("SELECT * FROM region WHERE id = {$row2['pid']}", true);
-        if (!in_array($row3['name'], $bad_strs) || $adjust == 0) {
-            $full_name = $row3['name'] . $separator . $full_name;
-        }
-        return $full_name;
+        $names = array_reverse($names);  // 翻转为正序
+        return implode($separator, $names);
     }
 
     /**
