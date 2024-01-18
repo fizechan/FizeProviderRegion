@@ -1,6 +1,6 @@
 <?php
 
-namespace Updater;
+namespace Fize\Provider\Region\Updater;
 
 use DOMDocument;
 use DOMXPath;
@@ -62,6 +62,7 @@ class MCA
                 $cur_sort1 += 1;
                 $cur_sort2 = 0;
                 $cur_sort3 = 0;
+                $id = substr($id, 0, 2);
                 $row = [
                     'id'    => $id,
                     'pid'   => 0,
@@ -73,10 +74,10 @@ class MCA
                 $cur_pid1 = $id;
                 $cur_pid2 = $id;  // 直辖市兼容
                 if ($adjust >= 2) {  // 港澳台调整
-                    if (in_array($id, ['710000', '	810000', '820000'])) {
+                    if (in_array($id, ['71', '	81', '82'])) {
                         // 市
                         $cur_sort2 += 1;
-                        $id2 = substr($id, 0, 2) . '0100';
+                        $id2 = $id . '01';
                         $name2 = '市辖区';
                         $row = [
                             'id'    => $id2,
@@ -89,7 +90,7 @@ class MCA
                         $cur_pid2 = $id2;
                         // 区
                         $cur_sort3 += 1;
-                        $id3 = substr($id, 0, 2) . '0101';
+                        $id3 = $id2 . '01';
                         $name3 = '市辖区';
                         $row = [
                             'id'    => $id3,
@@ -102,9 +103,10 @@ class MCA
                     }
                 }
             } elseif ($tr_type == 2) {  // 市、直辖县级
-                // 类似【东莞市】【中山市】无3级数据的则加入一条【市辖区】
+                $id = substr($id, 0, 4);
+                // “直筒子市”无3级数据的则加入一条【市辖区】
                 if ($cur_pid2 != $id && $cur_sort2 > 0 && $cur_sort3 == 0) {
-                    $id3 = substr($cur_pid2, 0, 4) . '01';
+                    $id3 = $cur_pid2 . '00';
                     $name3 = '市辖区';
                     $row = [
                         'id'    => $id3,
@@ -135,7 +137,7 @@ class MCA
                         throw new RuntimeException("无法解析行政区划代码：{$name}");
                     }
                 }
-                $cur_pid2n = substr($id, 0, 4) . '00';
+                $cur_pid2n = substr($id, 0, 4);
                 if ($cur_pid2n != $cur_pid2) {
                     if ($adjust >= 1) {
                         $md = substr($id, 2, 2);
@@ -145,10 +147,9 @@ class MCA
                             $name2 = '县';
                         } elseif ($md == '90') {  // 直辖县级
                             $name2 = '直辖县级';
-
                             // 类似【儋州市】无3级数据的则加入一条【市辖区】
                             if ($cur_sort3 == 0) {
-                                $id3 = substr($cur_pid2, 0, 4) . '01';
+                                $id3 = $cur_pid2 . '00';
                                 $name3 = '市辖区';
                                 $row = [
                                     'id'    => $id3,

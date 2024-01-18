@@ -1,6 +1,6 @@
 <?php
 
-namespace Updater;
+namespace Fize\Provider\Region\Updater;
 
 use DOMDocument;
 use DOMXPath;

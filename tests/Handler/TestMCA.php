@@ -11,7 +11,7 @@ class TestMCA extends TestCase
     public function testGet()
     {
         $mca = new MCA();
-        $items = $mca->get(110000);
+        $items = $mca->get(11);
         var_dump($items);
         self::assertIsArray($items);
     }
@@ -27,7 +27,7 @@ class TestMCA extends TestCase
     public function testGetCitys()
     {
         $mca = new MCA();
-        $items = $mca->getCitys(440000);
+        $items = $mca->getCitys(44);
         var_dump($items);
         self::assertIsArray($items);
     }
@@ -35,7 +35,7 @@ class TestMCA extends TestCase
     public function testGetCountys()
     {
         $mca = new MCA();
-        $items = $mca->getCountys(442000);
+        $items = $mca->getCountys(4420);
         var_dump($items);
         self::assertIsArray($items);
     }
@@ -51,8 +51,16 @@ class TestMCA extends TestCase
         var_dump($name);
         self::assertEquals('北京市门头沟区', $name);
 
-        $name = $mca->getFullName(442001, '', 1);
+        $name = $mca->getFullName(442000, '', 1);  # 直筒子市
         var_dump($name);
         self::assertEquals('广东省中山市', $name);
+
+        $name = $mca->getFullName(350581, '-', 1);
+        var_dump($name);
+        self::assertEquals('福建省-泉州市-石狮市', $name);
+
+        $name = $mca->getFullName(350581, '-', 2);  # 去除中间市
+        var_dump($name);
+        self::assertEquals('福建省-石狮市', $name);
     }
 }
