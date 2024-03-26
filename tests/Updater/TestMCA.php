@@ -1,8 +1,7 @@
 <?php
 
-namespace Updater;
+namespace Fize\Provider\Region\Tests\Updater;
 
-use Fize\Provider\Region\Updater\MCA;
 use PHPUnit\Framework\TestCase;
 
 class TestMCA extends TestCase

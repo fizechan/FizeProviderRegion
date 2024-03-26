@@ -1,5 +1,6 @@
 <?php
 
+namespace Fize\Provider\Region\Tests;
 
 use Fize\Provider\Region\RegionFactory;
 use Fize\Provider\Region\RegionHandler;

@@ -17,6 +17,11 @@
     "php": ">=7.0.0",
     "ext-sqlite3": "*"
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Fize\\Provider\\Region\\Tests\\": "tests"
+    }
+  },
   "require-dev": {
     "ext-dom": "*",
     "ext-json": "*",

@@ -1,6 +1,6 @@
 <?php
 
-namespace Handler;
+namespace Fize\Provider\Region\Tests\Handler;
 
 use Fize\Provider\Region\Handler\Local;
 use PHPUnit\Framework\TestCase;
