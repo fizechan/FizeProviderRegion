@@ -40,6 +40,7 @@ class NBS extends RegionHandlerInterface
 
     /**
      * 根据编码获取完整信息
+     *
      * 返回一个长度为5的数组，依次是【省-市-区-街道-社区】，为null表示没有指定该数据
      * @param int $id 编码
      * @return RegionItem[]|null[]
@@ -97,7 +98,7 @@ class NBS extends RegionHandlerInterface
      */
     public function getTowns(int $countyId): array
     {
-        return [];
+        return $this->gets($countyId);
     }
 
     /**
@@ -107,14 +108,16 @@ class NBS extends RegionHandlerInterface
      */
     public function getVillages(int $townId): array
     {
-        return [];
+        return $this->gets($townId);
     }
 
     /**
      * 获取完整名称
+     *
+     * 参数`$adjust`：0-不调整；1-去除【市辖区、县、直辖县级】；2-在1的基础上再去除中间市
      * @param int    $id        编码
      * @param string $separator 间隔符
-     * @param int    $adjust    调整方式：0-不调整；1-去除【市辖区、县、直辖县级】；2-在1的基础上再去除中间市
+     * @param int    $adjust    调整方式
      * @return string
      */
     public function getFullName(int $id, string $separator = '', int $adjust = 0): string

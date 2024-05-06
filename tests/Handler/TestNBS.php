@@ -40,6 +40,22 @@ class TestNBS extends TestCase
         self::assertIsArray($items);
     }
 
+    public function testGetTowns()
+    {
+        $nbs = new NBS();
+        $items = $nbs->getTowns(500229);
+        var_dump($items);
+        self::assertIsArray($items);
+    }
+
+    public function testGetVillages()
+    {
+        $nbs = new NBS();
+        $items = $nbs->getVillages(500229001);
+        var_dump($items);
+        self::assertIsArray($items);
+    }
+
     public function testGetFullName()
     {
         $nbs = new NBS();
