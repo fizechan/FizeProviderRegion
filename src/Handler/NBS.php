@@ -27,7 +27,7 @@ class NBS extends RegionHandlerInterface
     public function __construct(array $config = null)
     {
         parent::__construct($config);
-        $this->db = new SQLite3(dirname(__DIR__, 2) . "/data/NBS.sqlite3", SQLITE3_OPEN_READONLY);
+        $this->db = new SQLite3(dirname(__DIR__, 2) . "/database/NBS.sqlite3", SQLITE3_OPEN_READONLY);
     }
 
     /**

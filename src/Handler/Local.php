@@ -26,7 +26,7 @@ class Local extends RegionHandlerInterface
     public function __construct(array $config = null)
     {
         parent::__construct($config);
-        $this->db = new SQLite3(dirname(__DIR__, 2) . "/data/Local.sqlite3", SQLITE3_OPEN_READONLY);
+        $this->db = new SQLite3(dirname(__DIR__, 2) . "/database/Local.sqlite3", SQLITE3_OPEN_READONLY);
     }
 
     /**

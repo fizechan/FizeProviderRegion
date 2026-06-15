@@ -27,7 +27,7 @@ class MCA extends RegionHandlerInterface
     public function __construct(array $config = null)
     {
         parent::__construct($config);
-        $this->db = new SQLite3(dirname(__DIR__, 2) . "/data/MCA.sqlite3", SQLITE3_OPEN_READONLY);
+        $this->db = new SQLite3(dirname(__DIR__, 2) . "/database/MCA.sqlite3", SQLITE3_OPEN_READONLY);
     }
 
     /**

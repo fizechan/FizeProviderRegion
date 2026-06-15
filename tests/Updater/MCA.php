@@ -187,7 +187,7 @@ class MCA
                 $rows[] = $row;
             }
         }
-        $db = new SQLite3(dirname(__DIR__, 2) . "/data/MCA.sqlite3", SQLITE3_OPEN_READWRITE);
+        $db = new SQLite3(dirname(__DIR__, 2) . "/database/MCA.sqlite3", SQLITE3_OPEN_READWRITE);
         $db->exec('BEGIN TRANSACTION');
         $db->exec('DELETE FROM region');
         foreach ($rows as $row) {
