@@ -2,5 +2,3 @@
 /vendor/
 /.phpunit.result.cache
 /composer.lock
-/.cache/*
-!/cache/.gitkeep

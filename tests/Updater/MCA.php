@@ -189,7 +189,7 @@ class MCA
         }
         $db = new SQLite3(dirname(__DIR__, 2) . "/database/MCA.sqlite3", SQLITE3_OPEN_READWRITE);
         $db->exec('BEGIN TRANSACTION');
-        $db->exec('DELETE FROM region');
+        $db->exec('DELETE FROM region WHERE TRUE');
         foreach ($rows as $row) {
             $sql = "INSERT INTO region (id, pid, name, level, sort) VALUES ({$row['id']}, {$row['pid']}, '{$row['name']}', '{$row['level']}', {$row['sort']})";
             $db->exec($sql);

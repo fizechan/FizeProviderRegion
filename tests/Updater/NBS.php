@@ -16,8 +16,8 @@ class NBS
     {
         $db = new SQLite3(dirname(__DIR__, 2) . "/database/NBS.sqlite3", SQLITE3_OPEN_READWRITE);
         $db->exec('BEGIN TRANSACTION');
-        $db->exec('DELETE FROM region');
-        $db->exec('DELETE FROM village');
+        $db->exec('DELETE FROM region WHERE TRUE');
+        $db->exec('DELETE FROM village WHERE TRUE');
         $db->exec('COMMIT');
 
         libxml_use_internal_errors(true);
@@ -121,7 +121,7 @@ class NBS
 
     private static function data1()
     {
-        $cache_file = dirname(__DIR__, 2) . "/.cache/2023.json";
+        $cache_file = dirname(__DIR__, 2) . "/runtime/cache/2023.json";
         if (is_file($cache_file)) {
             $datas = json_decode(file_get_contents($cache_file), true);
             return $datas;
@@ -151,7 +151,7 @@ class NBS
 
     private static function data2($lv1Id)
     {
-        $cache_file = dirname(__DIR__, 2) . "/.cache/2023_{$lv1Id}.json";
+        $cache_file = dirname(__DIR__, 2) . "/runtime/cache/2023_{$lv1Id}.json";
         if (is_file($cache_file)) {
             $datas = json_decode(file_get_contents($cache_file), true);
             return $datas;
@@ -193,7 +193,7 @@ class NBS
 
     private static function data3($lv1Id, $lv2Id)
     {
-        $cache_file = dirname(__DIR__, 2) . "/.cache/2023_{$lv1Id}_{$lv2Id}.json";
+        $cache_file = dirname(__DIR__, 2) . "/runtime/cache/2023_{$lv1Id}_{$lv2Id}.json";
         if (is_file($cache_file)) {
             $datas = json_decode(file_get_contents($cache_file), true);
             return $datas;
@@ -249,7 +249,7 @@ class NBS
 
     private static function data4($lv1Id, $lv2Id, $lv3Id, $lv3Uri)
     {
-        $cache_file = dirname(__DIR__, 2) . "/.cache/2023_{$lv1Id}_{$lv2Id}_{$lv3Id}.json";
+        $cache_file = dirname(__DIR__, 2) . "/runtime/cache/2023_{$lv1Id}_{$lv2Id}_{$lv3Id}.json";
         if (is_file($cache_file)) {
             $datas = json_decode(file_get_contents($cache_file), true);
             return $datas;
@@ -290,7 +290,7 @@ class NBS
 
     private static function data5($lv1Id, $lv2Id, $lv3Id, $lv4Id, $lv4Uri)
     {
-        $cache_file = dirname(__DIR__, 2) . "/.cache/2023_{$lv1Id}_{$lv2Id}_{$lv3Id}_{$lv4Id}.json";
+        $cache_file = dirname(__DIR__, 2) . "/runtime/cache/2023_{$lv1Id}_{$lv2Id}_{$lv3Id}_{$lv4Id}.json";
         if (is_file($cache_file)) {
             $datas = json_decode(file_get_contents($cache_file), true);
             return $datas;
